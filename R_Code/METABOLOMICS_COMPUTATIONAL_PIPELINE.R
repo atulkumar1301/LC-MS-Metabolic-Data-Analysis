@@ -1,5 +1,5 @@
 # =========================================================================
-# METABOLOMICS COMPUTATIONAL PIPELINE: HILIC NEGATIVE PLATFORM
+# METABOLOMICS COMPUTATIONAL PIPELINE: RP Negative PLATFORM
 # Workflow: Preprocessing, Global Screening (PERMANOVA) & Biomarker Discovery (Limma)
 # =========================================================================
 
@@ -23,10 +23,10 @@ options(scipen = 999)
 # -------------------------------------------------------------------------
 # Load raw intensity feature matrix. 
 # CRITICAL: check.names=FALSE protects raw chemical names with spaces/hyphens from scrambling.
-df <- fread("~/OneDrive - University of Eastern Finland/Projects/Oulu_Project/Metabolic_Project/Hilic_Neg/3_Clean_Data.txt", check.names = FALSE)
+df <- fread("~/OneDrive - University of Eastern Finland/Projects/Oulu_Project/Metabolic_Project/RP_Neg/3_Clean_Data.txt", check.names = FALSE)
 
 # Extract feature measurement zone (Samples are positioned across columns 4 to 65)
-mtx <- df[, 4:65]
+mtx <- df[, 4:68]
 
 # Deduplicate original metabolite tags safely using make.unique
 unique_names <- make.unique(as.character(df[[1]]))
@@ -48,7 +48,7 @@ mtx_log <- log2(mtx_norm + 1)
 mtx_final <- t(apply(mtx_log, 1, function(x) (x - mean(x)) / sqrt(sd(x))))
 
 # --- Step D: Metadata Ingestion ---
-metadata <- fread("~/OneDrive - University of Eastern Finland/Projects/Oulu_Project/Metabolic_Project/Metadata_neg_HILIC.txt")
+metadata <- fread("~/OneDrive - University of Eastern Finland/Projects/Oulu_Project/Metabolic_Project/Metadata_RP_Neg.txt")
 
 # -------------------------------------------------------------------------
 # MODULE 3: DIAGNOSTIC EXPLORATORY ANALYSIS (GLOBAL PCA)
@@ -69,7 +69,7 @@ pca_df <- data.frame(SampleID = rownames(pca_res$x),
 p_pca <- ggplot(pca_df, aes(x = PC1, y = PC2, color = Group)) +
   geom_point(size = 4, alpha = 0.8) +
   theme_minimal() +
-  labs(title = "PCA: Global Unconstrained Metabolic Profiling (HILIC Negative)",
+  labs(title = "PCA: Global Unconstrained Metabolic Profiling (RP Negative)",
        x = paste0("PC1 (", var_explained[1], "%)"),
        y = paste0("PC2 (", var_explained[2], "%)")) +
   scale_color_brewer(palette = "Set1") + 
@@ -167,7 +167,7 @@ permanova_table <- permanova_table[order(-permanova_table$Variance_Explained_R2)
 
 print("PERMANOVA SUMMARY TABLE:")
 print(permanova_table)
-write.table (permanova_table, "~/OneDrive - University of Eastern Finland/Projects/Oulu_Project/Metabolic_Project/Hilic_Neg/Permanova_table.txt", sep = "\t", row.names = FALSE, quote = FALSE)
+write.table (permanova_table, "~/OneDrive - University of Eastern Finland/Projects/Oulu_Project/Metabolic_Project/RP_Neg/Permanova_table.txt", sep = "\t", row.names = FALSE, quote = FALSE)
 
 # --- Visualizing Phase I Summary (Continuous Viridis Ranking Plot) ---
 # Arrange y-axis labels based on performance ranking hierarchy
@@ -180,7 +180,7 @@ p_perm <- ggplot(permanova_table, aes(x = Clinical_Trait, y = Variance_Explained
   scale_fill_viridis_c(option = "plasma", name = "Global Variance\nExplained (%)") +
   coord_flip() +
   theme_minimal() +
-  labs(title = "Multivariate Screening: Ranking Patient Trait Influence (HILIC Negative)",
+  labs(title = "Multivariate Screening: Ranking Patient Trait Influence (RP Negative)",
        subtitle = "Ranked by Global Variance Explained (PERMANOVA Euclidean Distance)",
        x = "Clinical Phenotype / Trait",
        y = "Total Percentage of Global Metabolic Variance Explained (%)") +
@@ -288,12 +288,14 @@ for (g in groupings) {
 
 print("BIOMARKER YIELD PER CLINICAL TRAIT (CONTROLLED FOR AGE & SEX):")
 print(limma_summary_table)
+write.table (limma_summary_table, "~/OneDrive - University of Eastern Finland/Projects/Oulu_Project/Metabolic_Project/RP_Neg/Limma_summary_table.txt", sep = "\t", row.names = FALSE, quote = FALSE)
+
 
 # --- Auto-Export Functional Result Output Tables ---
 for (g in groupings) {
   if (!is.null(all_limma_results[[g]])) {
     # paste0 generates clean string connections avoiding file-naming path spaces
-    file_name <- paste0("~/OneDrive - University of Eastern Finland/Projects/Oulu_Project/Metabolic_Project/Hilic_Neg/Stats_All_Metabolites_", g, ".txt")
+    file_name <- paste0("~/OneDrive - University of Eastern Finland/Projects/Oulu_Project/Metabolic_Project/RP_Neg/Stats_All_Metabolites_", g, ".txt")
     write.table(all_limma_results[[g]], file = file_name, sep = "\t", row.names = FALSE, quote = FALSE)
   }
 }
@@ -347,7 +349,7 @@ p_yield <- ggplot(summary_long, aes(x = Clinical_Trait, y = Count, fill = Strict
   # Apply clean minimalist canvas setting
   theme_minimal() +
   labs(
-    title = "Differential Regulation Yield Across Patient Phenotypes (HILIC Negative)",
+    title = "Differential Regulation Yield Across Patient Phenotypes (RP Negative)",
     subtitle = "Quantified feature discovery rates via multi-variable Limma models (Adjusted for Age & Sex)",
     x = "Evaluated Clinical Phenotype / Trait",
     y = "Number of Differentially Regulated Metabolites (Features Count)"
@@ -370,7 +372,7 @@ p_yield <- ggplot(summary_long, aes(x = Clinical_Trait, y = Count, fill = Strict
   
   # Expand upper coordinate limits to ensure floating text values never get cut off by the edge
   scale_y_continuous(
-    breaks = seq(0, max(summary_long$Count, na.rm = TRUE) + 1, by = 2),
+    breaks = seq(0, max(summary_long$Count, na.rm = TRUE) + 1, by = 5),
     expand = expansion(mult = c(0, 0.15))
   )
 
@@ -384,7 +386,7 @@ print(p_yield)
 p_cutoff <- 0.05
 
 # Define target folder path (space-free naming format)
-output_dir <- "~/OneDrive - University of Eastern Finland/Projects/Oulu_Project/Metabolic_Project/Hilic_Neg/"
+output_dir <- "~/OneDrive - University of Eastern Finland/Projects/Oulu_Project/Metabolic_Project/RP_Neg/"
 
 # Custom hyphen/slash-aware text wrapper for long chemical name strings
 wrap_chem_names <- function(names, width = 22) {
@@ -615,4 +617,4 @@ for (g in groupings) {
 cat("\n--- Pipeline Completed. All integrated A4 plates exported successfully ---\n")
 # =========================================================================
 # END OF PIPELINE
-# =========================================================================
+# ========================================================================
